@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<title>Ride Waits</title>
+
+<!-- iOS Home Screen App -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ride Waits">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<style>
+    body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        background: #080820;
+        color: #fff;
+    }
+
+    header {
+        position: sticky;
+        top: 0;
+        background: #080820;
+        padding: 16px;
+        text-align: center;
+        border-bottom: 1px solid #2a2a50;
+        z-index: 10;
+    }
+
+    header h1 {
+        margin: 0;
+        font-size: 1.6em;
+        color: #87CEEB;
+    }
+
+    header .updated {
+        font-size: 0.9em;
+        color: #aaa;
+        margin-top: 6px;
+    }
+
+    .park {
+        padding: 16px;
+    }
+
+    .park h2 {
+        margin: 24px 0 12px;
+        font-size: 1.4em;
+        color: #fff;
+        border-bottom: 2px solid #2a2a50;
+        padding-bottom: 6px;
+    }
+
+    .ride {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #1f1f3d;
+        font-size: 1.1em;
+    }
+
+    .ride:last-child {
+        border-bottom: none;
+    }
+
+    .wait {
+        font-weight: 600;
+        color: #A0D8F0;
+        white-space: nowrap;
+    }
+
+    .closed {
+        color: #ff6666;

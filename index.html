@@ -42,25 +42,6 @@ h1 {
     margin-top: 4px;
 }
 
-.widget {
-    background: #11113a;
-    border-radius: 12px;
-    padding: 10px;
-    margin-top: 10px;
-}
-
-.widget-title {
-    font-size: 0.85em;
-    color: #87CEEB;
-    margin-bottom: 6px;
-}
-
-.widget-item {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.95em;
-}
-
 .tabs {
     display: flex;
     gap: 8px;
@@ -123,11 +104,6 @@ h1 {
 .wait.medium { color: #FFD966; }
 .wait.long { color: #FF9966; }
 .wait.closed { color: #ff6666; font-style: italic; }
-
-.star {
-    color: gold;
-    margin-right: 6px;
-}
 </style>
 </head>
 
@@ -137,12 +113,9 @@ h1 {
     <h1>Orlando Ride Waits</h1>
     <div class="updated" id="updated">Loading…</div>
 
-    <div class="widget" id="widget"></div>
-
     <div class="tabs" id="tabs"></div>
 
     <div class="toggle">
-        <span id="favToggle">Show favorites only</span> ·
         <span id="closedToggle">Hide closed rides</span>
     </div>
 </header>
@@ -152,15 +125,6 @@ h1 {
 <script>
 const PROXY = "https://api.allorigins.win/raw?url=";
 const BASE  = "https://queue-times.com/parks/";
-
-const FAVORITES = [
-    "TRON Lightcycle / Run",
-    "Guardians of the Galaxy: Cosmic Rewind",
-    "Star Wars: Rise of the Resistance",
-    "Hagrid's Magical Creatures Motorbike Adventure",
-    "Jurassic World VelociCoaster",
-    "Avatar Flight of Passage"
-];
 
 const PARKS = [
     { id: 6, name: "Magic Kingdom" },
@@ -172,7 +136,6 @@ const PARKS = [
 ];
 
 let activePark = localStorage.getItem("activePark") || "ALL";
-let favOnly    = localStorage.getItem("favOnly") === "true";
 let hideClosed = localStorage.getItem("hideClosed") === "true";
 let scrollY    = Number(localStorage.getItem("scrollY") || 0);
 
@@ -210,12 +173,8 @@ function buildTabs() {
 
 async function loadParks() {
     const content = document.getElementById("content");
-    const widget  = document.getElementById("widget");
     content.innerHTML = "";
-    widget.innerHTML  = "";
     buildTabs();
-
-    let widgetItems = [];
 
     for (const park of PARKS) {
         if (activePark !== "ALL" && activePark !== park.name) continue;
@@ -235,9 +194,6 @@ async function loadParks() {
             section.innerHTML += `<div class="crowd">Crowd level: ${crowdLevel(rides)}</div>`;
 
             rides.sort((a, b) => {
-                const fa = FAVORITES.includes(a.name);
-                const fb = FAVORITES.includes(b.name);
-                if (fa !== fb) return fa ? -1 : 1;
                 if (a.is_open !== b.is_open) return a.is_open ? -1 : 1;
                 if (!a.is_open) return a.name.localeCompare(b.name);
                 return a.wait_time - b.wait_time;
@@ -245,19 +201,12 @@ async function loadParks() {
 
             rides.forEach(r => {
                 if (hideClosed && !r.is_open) return;
-                if (favOnly && !FAVORITES.includes(r.name)) return;
-
-                if (FAVORITES.includes(r.name)) {
-                    widgetItems.push(r);
-                }
 
                 const row = document.createElement("div");
                 row.className = "ride";
 
                 const name = document.createElement("span");
-                name.innerHTML = FAVORITES.includes(r.name)
-                    ? `<span class="star">★</span>${r.name}`
-                    : r.name;
+                name.textContent = r.name;
 
                 const wait = document.createElement("span");
                 wait.className = "wait";
@@ -280,27 +229,11 @@ async function loadParks() {
         }
     }
 
-    widget.innerHTML = `<div class="widget-title">Favorites snapshot</div>`;
-    widgetItems.slice(0,5).forEach(r => {
-        const div = document.createElement("div");
-        div.className = "widget-item";
-        div.innerHTML = `<span>${r.name}</span><span>${r.is_open ? r.wait_time + " min" : "Closed"}</span>`;
-        widget.appendChild(div);
-    });
-
     document.getElementById("updated").textContent =
         "Updated " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
     setTimeout(() => window.scrollTo(0, scrollY), 50);
 }
-
-document.getElementById("favToggle").onclick = () => {
-    favOnly = !favOnly;
-    localStorage.setItem("favOnly", favOnly);
-    document.getElementById("favToggle").textContent =
-        favOnly ? "Show all rides" : "Show favorites only";
-    loadParks();
-};
 
 document.getElementById("closedToggle").onclick = () => {
     hideClosed = !hideClosed;
@@ -309,643 +242,6 @@ document.getElementById("closedToggle").onclick = () => {
         hideClosed ? "Show closed rides" : "Hide closed rides";
     loadParks();
 };
-
-document.getElementById("favToggle").textContent =
-    favOnly ? "Show all rides" : "Show favorites only";
-
-document.getElementById("closedToggle").textContent =
-    hideClosed ? "Show closed rides" : "Hide closed rides";
-
-window.addEventListener("scroll", () => {
-    localStorage.setItem("scrollY", window.scrollY);
-});
-
-loadParks();
-setInterval(loadParks, 5 * 60 * 1000);
-</script>
-
-</body>
-</html>
-
-
-<style>
-body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-    background: #080820;
-    color: #fff;
-}
-
-header {
-    position: sticky;
-    top: 0;
-    background: #080820;
-    padding: 12px;
-    border-bottom: 1px solid #2a2a50;
-    z-index: 10;
-}
-
-h1 {
-    margin: 0;
-    text-align: center;
-    font-size: 1.4em;
-    color: #87CEEB;
-}
-
-.updated {
-    text-align: center;
-    font-size: 0.8em;
-    color: #aaa;
-    margin-top: 4px;
-}
-
-.widget {
-    background: #11113a;
-    border-radius: 12px;
-    padding: 10px;
-    margin-top: 10px;
-}
-
-.widget-title {
-    font-size: 0.85em;
-    color: #87CEEB;
-    margin-bottom: 6px;
-}
-
-.widget-item {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.95em;
-}
-
-.tabs {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding: 10px 0 4px;
-}
-
-.tab {
-    padding: 6px 12px;
-    border-radius: 12px;
-    background: #1a1a40;
-    color: #ccc;
-    font-size: 0.8em;
-    white-space: nowrap;
-    cursor: pointer;
-}
-
-.tab.active {
-    background: #87CEEB;
-    color: #000;
-}
-
-.toggle {
-    margin-top: 6px;
-    text-align: center;
-    font-size: 0.85em;
-}
-
-.toggle span {
-    cursor: pointer;
-    color: #87CEEB;
-}
-
-.park {
-    padding: 14px;
-}
-
-.park h2 {
-    margin: 10px 0 4px;
-    font-size: 1.3em;
-    border-bottom: 2px solid #2a2a50;
-    padding-bottom: 4px;
-}
-
-.crowd {
-    font-size: 0.85em;
-    margin-bottom: 8px;
-    color: #ccc;
-}
-
-.ride {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px solid #1f1f3d;
-    font-size: 1.05em;
-}
-
-.wait.short { color: #7CFC98; }
-.wait.medium { color: #FFD966; }
-.wait.long { color: #FF9966; }
-.wait.closed { color: #ff6666; font-style: italic; }
-
-.star {
-    color: gold;
-    margin-right: 6px;
-}
-</style>
-</head>
-
-<body>
-
-<header>
-    <h1>Orlando Ride Waits</h1>
-    <div class="updated" id="updated">Loading…</div>
-
-    <div class="widget" id="widget"></div>
-
-    <div class="tabs" id="tabs"></div>
-
-    <div class="toggle">
-        <span id="favToggle">Show favorites only</span> ·
-        <span id="closedToggle">Hide closed rides</span>
-    </div>
-</header>
-
-<div id="content"></div>
-
-<script>
-const PROXY = "https://api.allorigins.win/raw?url=";
-const BASE  = "https://queue-times.com/parks/";
-
-const FAVORITES = [
-    "TRON Lightcycle / Run",
-    "Guardians of the Galaxy: Cosmic Rewind",
-    "Star Wars: Rise of the Resistance",
-    "Hagrid's Magical Creatures Motorbike Adventure",
-    "Jurassic World VelociCoaster",
-    "Avatar Flight of Passage"
-];
-
-const PARKS = [
-    { id: 6, name: "Magic Kingdom" },
-    { id: 5, name: "EPCOT" },
-    { id: 7, name: "Hollywood Studios" },
-    { id: 8, name: "Animal Kingdom" },
-    { id: 65, name: "Universal Studios Florida" },
-    { id: 64, name: "Islands of Adventure" }
-];
-
-let activePark = localStorage.getItem("activePark") || "ALL";
-let favOnly    = localStorage.getItem("favOnly") === "true";
-let hideClosed = localStorage.getItem("hideClosed") === "true";
-let scrollY    = Number(localStorage.getItem("scrollY") || 0);
-
-function waitClass(w) {
-    if (w < 30) return "short";
-    if (w < 60) return "medium";
-    return "long";
-}
-
-function crowdLevel(rides) {
-    const waits = rides.filter(r => r.is_open).map(r => r.wait_time);
-    if (!waits.length) return "Closed";
-    const avg = waits.reduce((a,b)=>a+b,0) / waits.length;
-    if (avg < 30) return "Low";
-    if (avg < 60) return "Medium";
-    return "High";
-}
-
-function buildTabs() {
-    const tabs = document.getElementById("tabs");
-    tabs.innerHTML = "";
-
-    ["ALL", ...PARKS.map(p => p.name)].forEach(name => {
-        const tab = document.createElement("div");
-        tab.className = "tab" + (activePark === name ? " active" : "");
-        tab.textContent = name === "ALL" ? "All Parks" : name;
-        tab.onclick = () => {
-            activePark = name;
-            localStorage.setItem("activePark", name);
-            loadParks();
-        };
-        tabs.appendChild(tab);
-    });
-}
-
-async function loadParks() {
-    const content = document.getElementById("content");
-    const widget  = document.getElementById("widget");
-    content.innerHTML = "";
-    widget.innerHTML  = "";
-    buildTabs();
-
-    let widgetItems = [];
-
-    for (const park of PARKS) {
-        if (activePark !== "ALL" && activePark !== park.name) continue;
-
-        const section = document.createElement("div");
-        section.className = "park";
-        section.innerHTML = `<h2>${park.name}</h2>`;
-        content.appendChild(section);
-
-        try {
-            const res  = await fetch(PROXY + encodeURIComponent(`${BASE}${park.id}/queue_times.json`));
-            const data = await res.json();
-
-            let rides = [];
-            data.lands?.forEach(l => l.rides && (rides = rides.concat(l.rides)));
-
-            section.innerHTML += `<div class="crowd">Crowd level: ${crowdLevel(rides)}</div>`;
-
-            rides.sort((a, b) => {
-                const fa = FAVORITES.includes(a.name);
-                const fb = FAVORITES.includes(b.name);
-                if (fa !== fb) return fa ? -1 : 1;
-                if (a.is_open !== b.is_open) return a.is_open ? -1 : 1;
-                if (!a.is_open) return a.name.localeCompare(b.name);
-                return a.wait_time - b.wait_time;
-            });
-
-            rides.forEach(r => {
-                if (hideClosed && !r.is_open) return;
-                if (favOnly && !FAVORITES.includes(r.name)) return;
-
-                if (FAVORITES.includes(r.name)) {
-                    widgetItems.push(r);
-                }
-
-                const row = document.createElement("div");
-                row.className = "ride";
-
-                const name = document.createElement("span");
-                name.innerHTML = FAVORITES.includes(r.name)
-                    ? `<span class="star">★</span>${r.name}`
-                    : r.name;
-
-                const wait = document.createElement("span");
-                wait.className = "wait";
-
-                if (r.is_open) {
-                    wait.textContent = `${r.wait_time} min`;
-                    wait.classList.add(waitClass(r.wait_time));
-                } else {
-                    wait.textContent = r.status || "Closed";
-                    wait.classList.add("closed");
-                }
-
-                row.appendChild(name);
-                row.appendChild(wait);
-                section.appendChild(row);
-            });
-
-        } catch {
-            section.innerHTML += `<div class="crowd">Failed to load data</div>`;
-        }
-    }
-
-    widget.innerHTML = `<div class="widget-title">Favorites snapshot</div>`;
-    widgetItems.slice(0,5).forEach(r => {
-        const div = document.createElement("div");
-        div.className = "widget-item";
-        div.innerHTML = `<span>${r.name}</span><span>${r.is_open ? r.wait_time + " min" : "Closed"}</span>`;
-        widget.appendChild(div);
-    });
-
-    document.getElementById("updated").textContent =
-        "Updated " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-    setTimeout(() => window.scrollTo(0, scrollY), 50);
-}
-
-document.getElementById("favToggle").onclick = () => {
-    favOnly = !favOnly;
-    localStorage.setItem("favOnly", favOnly);
-    document.getElementById("favToggle").textContent =
-        favOnly ? "Show all rides" : "Show favorites only";
-    loadParks();
-};
-
-document.getElementById("closedToggle").onclick = () => {
-    hideClosed = !hideClosed;
-    localStorage.setItem("hideClosed", hideClosed);
-    document.getElementById("closedToggle").textContent =
-        hideClosed ? "Show closed rides" : "Hide closed rides";
-    loadParks();
-};
-
-document.getElementById("favToggle").textContent =
-    favOnly ? "Show all rides" : "Show favorites only";
-
-document.getElementById("closedToggle").textContent =
-    hideClosed ? "Show closed rides" : "Hide closed rides";
-
-window.addEventListener("scroll", () => {
-    localStorage.setItem("scrollY", window.scrollY);
-});
-
-loadParks();
-setInterval(loadParks, 5 * 60 * 1000);
-</script>
-
-</body>
-</html>
-
-
-<style>
-body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-    background: #080820;
-    color: #fff;
-}
-
-header {
-    position: sticky;
-    top: 0;
-    background: #080820;
-    padding: 12px;
-    border-bottom: 1px solid #2a2a50;
-    z-index: 10;
-}
-
-h1 {
-    margin: 0;
-    text-align: center;
-    font-size: 1.4em;
-    color: #87CEEB;
-}
-
-.updated {
-    text-align: center;
-    font-size: 0.8em;
-    color: #aaa;
-    margin-top: 4px;
-}
-
-.widget {
-    background: #11113a;
-    border-radius: 12px;
-    padding: 10px;
-    margin-top: 10px;
-}
-
-.widget-title {
-    font-size: 0.85em;
-    color: #87CEEB;
-    margin-bottom: 6px;
-}
-
-.widget-item {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.95em;
-}
-
-.tabs {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding: 10px 0 4px;
-}
-
-.tab {
-    padding: 6px 12px;
-    border-radius: 12px;
-    background: #1a1a40;
-    color: #ccc;
-    font-size: 0.8em;
-    white-space: nowrap;
-    cursor: pointer;
-}
-
-.tab.active {
-    background: #87CEEB;
-    color: #000;
-}
-
-.toggle {
-    margin-top: 6px;
-    text-align: center;
-    font-size: 0.85em;
-}
-
-.toggle span {
-    cursor: pointer;
-    color: #87CEEB;
-}
-
-.park {
-    padding: 14px;
-}
-
-.park h2 {
-    margin: 10px 0 4px;
-    font-size: 1.3em;
-    border-bottom: 2px solid #2a2a50;
-    padding-bottom: 4px;
-}
-
-.crowd {
-    font-size: 0.85em;
-    margin-bottom: 8px;
-    color: #ccc;
-}
-
-.ride {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px solid #1f1f3d;
-    font-size: 1.05em;
-}
-
-.wait.short { color: #7CFC98; }
-.wait.medium { color: #FFD966; }
-.wait.long { color: #FF9966; }
-.wait.closed { color: #ff6666; font-style: italic; }
-
-.star {
-    color: gold;
-    margin-right: 6px;
-}
-</style>
-</head>
-
-<body>
-
-<header>
-    <h1>Orlando Ride Waits</h1>
-    <div class="updated" id="updated">Loading…</div>
-
-    <div class="widget" id="widget"></div>
-
-    <div class="tabs" id="tabs"></div>
-
-    <div class="toggle">
-        <span id="favToggle">Show favorites only</span> ·
-        <span id="closedToggle">Hide closed rides</span>
-    </div>
-</header>
-
-<div id="content"></div>
-
-<script>
-const PROXY = "https://api.allorigins.win/raw?url=";
-const BASE  = "https://queue-times.com/parks/";
-
-const FAVORITES = [
-    "TRON Lightcycle / Run",
-    "Guardians of the Galaxy: Cosmic Rewind",
-    "Star Wars: Rise of the Resistance",
-    "Hagrid's Magical Creatures Motorbike Adventure",
-    "Jurassic World VelociCoaster",
-    "Avatar Flight of Passage"
-];
-
-const PARKS = [
-    { id: 6, name: "Magic Kingdom" },
-    { id: 5, name: "EPCOT" },
-    { id: 7, name: "Hollywood Studios" },
-    { id: 8, name: "Animal Kingdom" },
-    { id: 65, name: "Universal Studios Florida" },
-    { id: 64, name: "Islands of Adventure" }
-];
-
-let activePark = localStorage.getItem("activePark") || "ALL";
-let favOnly    = localStorage.getItem("favOnly") === "true";
-let hideClosed = localStorage.getItem("hideClosed") === "true";
-let scrollY    = Number(localStorage.getItem("scrollY") || 0);
-
-function waitClass(w) {
-    if (w < 30) return "short";
-    if (w < 60) return "medium";
-    return "long";
-}
-
-function crowdLevel(rides) {
-    const waits = rides.filter(r => r.is_open).map(r => r.wait_time);
-    if (!waits.length) return "Closed";
-    const avg = waits.reduce((a,b)=>a+b,0) / waits.length;
-    if (avg < 30) return "Low";
-    if (avg < 60) return "Medium";
-    return "High";
-}
-
-function buildTabs() {
-    const tabs = document.getElementById("tabs");
-    tabs.innerHTML = "";
-
-    ["ALL", ...PARKS.map(p => p.name)].forEach(name => {
-        const tab = document.createElement("div");
-        tab.className = "tab" + (activePark === name ? " active" : "");
-        tab.textContent = name === "ALL" ? "All Parks" : name;
-        tab.onclick = () => {
-            activePark = name;
-            localStorage.setItem("activePark", name);
-            loadParks();
-        };
-        tabs.appendChild(tab);
-    });
-}
-
-async function loadParks() {
-    const content = document.getElementById("content");
-    const widget  = document.getElementById("widget");
-    content.innerHTML = "";
-    widget.innerHTML  = "";
-    buildTabs();
-
-    let widgetItems = [];
-
-    for (const park of PARKS) {
-        if (activePark !== "ALL" && activePark !== park.name) continue;
-
-        const section = document.createElement("div");
-        section.className = "park";
-        section.innerHTML = `<h2>${park.name}</h2>`;
-        content.appendChild(section);
-
-        try {
-            const res  = await fetch(PROXY + encodeURIComponent(`${BASE}${park.id}/queue_times.json`));
-            const data = await res.json();
-
-            let rides = [];
-            data.lands?.forEach(l => l.rides && (rides = rides.concat(l.rides)));
-
-            section.innerHTML += `<div class="crowd">Crowd level: ${crowdLevel(rides)}</div>`;
-
-            rides.sort((a, b) => {
-                const fa = FAVORITES.includes(a.name);
-                const fb = FAVORITES.includes(b.name);
-                if (fa !== fb) return fa ? -1 : 1;
-                if (a.is_open !== b.is_open) return a.is_open ? -1 : 1;
-                if (!a.is_open) return a.name.localeCompare(b.name);
-                return a.wait_time - b.wait_time;
-            });
-
-            rides.forEach(r => {
-                if (hideClosed && !r.is_open) return;
-                if (favOnly && !FAVORITES.includes(r.name)) return;
-
-                if (FAVORITES.includes(r.name)) {
-                    widgetItems.push(r);
-                }
-
-                const row = document.createElement("div");
-                row.className = "ride";
-
-                const name = document.createElement("span");
-                name.innerHTML = FAVORITES.includes(r.name)
-                    ? `<span class="star">★</span>${r.name}`
-                    : r.name;
-
-                const wait = document.createElement("span");
-                wait.className = "wait";
-
-                if (r.is_open) {
-                    wait.textContent = `${r.wait_time} min`;
-                    wait.classList.add(waitClass(r.wait_time));
-                } else {
-                    wait.textContent = r.status || "Closed";
-                    wait.classList.add("closed");
-                }
-
-                row.appendChild(name);
-                row.appendChild(wait);
-                section.appendChild(row);
-            });
-
-        } catch {
-            section.innerHTML += `<div class="crowd">Failed to load data</div>`;
-        }
-    }
-
-    widget.innerHTML = `<div class="widget-title">Favorites snapshot</div>`;
-    widgetItems.slice(0,5).forEach(r => {
-        const div = document.createElement("div");
-        div.className = "widget-item";
-        div.innerHTML = `<span>${r.name}</span><span>${r.is_open ? r.wait_time + " min" : "Closed"}</span>`;
-        widget.appendChild(div);
-    });
-
-    document.getElementById("updated").textContent =
-        "Updated " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-    setTimeout(() => window.scrollTo(0, scrollY), 50);
-}
-
-document.getElementById("favToggle").onclick = () => {
-    favOnly = !favOnly;
-    localStorage.setItem("favOnly", favOnly);
-    document.getElementById("favToggle").textContent =
-        favOnly ? "Show all rides" : "Show favorites only";
-    loadParks();
-};
-
-document.getElementById("closedToggle").onclick = () => {
-    hideClosed = !hideClosed;
-    localStorage.setItem("hideClosed", hideClosed);
-    document.getElementById("closedToggle").textContent =
-        hideClosed ? "Show closed rides" : "Hide closed rides";
-    loadParks();
-};
-
-document.getElementById("favToggle").textContent =
-    favOnly ? "Show all rides" : "Show favorites only";
 
 document.getElementById("closedToggle").textContent =
     hideClosed ? "Show closed rides" : "Hide closed rides";

@@ -6,76 +6,103 @@
 
 <title>Ride Waits</title>
 
-<!-- iOS Home Screen App -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Ride Waits">
-<link rel="apple-touch-icon" href="icon-192.png">
 
 <style>
-    body {
-        margin: 0;
-        font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-        background: #080820;
-        color: #fff;
-    }
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background: #080820;
+    color: #fff;
+}
 
-    header {
-        position: sticky;
-        top: 0;
-        background: #080820;
-        padding: 16px;
-        text-align: center;
-        border-bottom: 1px solid #2a2a50;
-        z-index: 10;
-    }
+header {
+    position: sticky;
+    top: 0;
+    background: #080820;
+    padding: 12px;
+    border-bottom: 1px solid #2a2a50;
+    z-index: 10;
+}
 
-    header h1 {
-        margin: 0;
-        font-size: 1.6em;
-        color: #87CEEB;
-    }
+h1 {
+    margin: 0;
+    text-align: center;
+    font-size: 1.4em;
+    color: #87CEEB;
+}
 
-    header .updated {
-        font-size: 0.9em;
-        color: #aaa;
-        margin-top: 6px;
-    }
+.updated {
+    text-align: center;
+    font-size: 0.8em;
+    color: #aaa;
+    margin-top: 4px;
+}
 
-    .park {
-        padding: 16px;
-    }
+.tabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 10px 0 4px;
+}
 
-    .park h2 {
-        margin: 24px 0 12px;
-        font-size: 1.4em;
-        border-bottom: 2px solid #2a2a50;
-        padding-bottom: 6px;
-    }
+.tab {
+    padding: 6px 12px;
+    border-radius: 12px;
+    background: #1a1a40;
+    color: #ccc;
+    font-size: 0.8em;
+    white-space: nowrap;
+    cursor: pointer;
+}
 
-    .ride {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 0;
-        border-bottom: 1px solid #1f1f3d;
-        font-size: 1.05em;
-    }
+.tab.active {
+    background: #87CEEB;
+    color: #000;
+}
 
-    .ride:last-child {
-        border-bottom: none;
-    }
+.toggle {
+    margin-top: 6px;
+    text-align: center;
+    font-size: 0.85em;
+}
 
-    .wait {
-        font-weight: 600;
-        color: #A0D8F0;
-        white-space: nowrap;
-    }
+.toggle span {
+    cursor: pointer;
+    color: #87CEEB;
+}
 
-    .closed {
-        color: #ff6666;
-        font-style: italic;
-    }
+.park {
+    padding: 14px;
+}
+
+.park h2 {
+    margin: 10px 0 4px;
+    font-size: 1.3em;
+    border-bottom: 2px solid #2a2a50;
+    padding-bottom: 4px;
+}
+
+.crowd {
+    font-size: 0.85em;
+    margin-bottom: 8px;
+    color: #ccc;
+}
+
+.ride {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #1f1f3d;
+    font-size: 1.05em;
+}
+
+.wait.short { color: #7CFC98; }
+.wait.medium { color: #FFD966; }
+.wait.long { color: #FF9966; }
+.wait.closed { color: #ff6666; font-style: italic; }
 </style>
 </head>
 
@@ -84,6 +111,12 @@
 <header>
     <h1>Orlando Ride Waits</h1>
     <div class="updated" id="updated">Loading…</div>
+
+    <div class="tabs" id="tabs"></div>
+
+    <div class="toggle">
+        <span id="closedToggle">Hide closed rides</span>
+    </div>
 </header>
 
 <div id="content"></div>
@@ -93,77 +126,128 @@ const PROXY = "https://api.allorigins.win/raw?url=";
 const BASE  = "https://queue-times.com/parks/";
 
 const PARKS = [
-    { id: 6,  name: "Magic Kingdom" },
-    { id: 5,  name: "EPCOT" },
-    { id: 7,  name: "Hollywood Studios" },
-    { id: 8,  name: "Animal Kingdom" },
+    { id: 6, name: "Magic Kingdom" },
+    { id: 5, name: "EPCOT" },
+    { id: 7, name: "Hollywood Studios" },
+    { id: 8, name: "Animal Kingdom" },
     { id: 65, name: "Universal Studios Florida" },
     { id: 64, name: "Islands of Adventure" }
 ];
 
+let activePark = localStorage.getItem("activePark") || "ALL";
+let hideClosed = localStorage.getItem("hideClosed") === "true";
+let scrollY    = Number(localStorage.getItem("scrollY") || 0);
+
+function waitClass(w) {
+    if (w < 30) return "short";
+    if (w < 60) return "medium";
+    return "long";
+}
+
+function crowdLevel(rides) {
+    const waits = rides.filter(r => r.is_open).map(r => r.wait_time);
+    if (!waits.length) return "Closed";
+    const avg = waits.reduce((a,b)=>a+b,0) / waits.length;
+    if (avg < 30) return "Low";
+    if (avg < 60) return "Medium";
+    return "High";
+}
+
+function buildTabs() {
+    const tabs = document.getElementById("tabs");
+    tabs.innerHTML = "";
+
+    ["ALL", ...PARKS.map(p => p.name)].forEach(name => {
+        const tab = document.createElement("div");
+        tab.className = "tab" + (activePark === name ? " active" : "");
+        tab.textContent = name === "ALL" ? "All Parks" : name;
+        tab.onclick = () => {
+            activePark = name;
+            localStorage.setItem("activePark", name);
+            loadParks();
+        };
+        tabs.appendChild(tab);
+    });
+}
+
 async function loadParks() {
-    const container = document.getElementById("content");
-    container.innerHTML = "";
+    const content = document.getElementById("content");
+    content.innerHTML = "";
+    buildTabs();
 
     for (const park of PARKS) {
+        if (activePark !== "ALL" && activePark !== park.name) continue;
+
         const section = document.createElement("div");
         section.className = "park";
         section.innerHTML = `<h2>${park.name}</h2>`;
-        container.appendChild(section);
+        content.appendChild(section);
 
         try {
-            const url = PROXY + encodeURIComponent(
-                `${BASE}${park.id}/queue_times.json`
-            );
-
-            const res = await fetch(url);
+            const res  = await fetch(PROXY + encodeURIComponent(`${BASE}${park.id}/queue_times.json`));
             const data = await res.json();
 
             let rides = [];
-            if (data.lands) {
-                data.lands.forEach(land => {
-                    if (land.rides) rides = rides.concat(land.rides);
-                });
-            }
+            data.lands?.forEach(l => l.rides && (rides = rides.concat(l.rides)));
 
-            rides
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .forEach(ride => {
-                    const row = document.createElement("div");
-                    row.className = "ride";
+            section.innerHTML += `<div class="crowd">Crowd level: ${crowdLevel(rides)}</div>`;
 
-                    const name = document.createElement("span");
-                    name.textContent = ride.name;
+            rides.sort((a, b) => {
+                if (a.is_open !== b.is_open) return a.is_open ? -1 : 1;
+                if (!a.is_open) return a.name.localeCompare(b.name);
+                return a.wait_time - b.wait_time;
+            });
 
-                    const wait = document.createElement("span");
-                    wait.className = "wait";
+            rides.forEach(r => {
+                if (hideClosed && !r.is_open) return;
 
-                    if (ride.is_open) {
-                        wait.textContent = `${ride.wait_time} min`;
-                    } else {
-                        wait.textContent = ride.status || "Closed";
-                        wait.classList.add("closed");
-                    }
+                const row = document.createElement("div");
+                row.className = "ride";
 
-                    row.appendChild(name);
-                    row.appendChild(wait);
-                    section.appendChild(row);
-                });
+                const name = document.createElement("span");
+                name.textContent = r.name;
 
-        } catch (err) {
-            const errorRow = document.createElement("div");
-            errorRow.className = "ride closed";
-            errorRow.textContent = "Failed to load ride data";
-            section.appendChild(errorRow);
+                const wait = document.createElement("span");
+                wait.className = "wait";
+
+                if (r.is_open) {
+                    wait.textContent = `${r.wait_time} min`;
+                    wait.classList.add(waitClass(r.wait_time));
+                } else {
+                    wait.textContent = r.status || "Closed";
+                    wait.classList.add("closed");
+                }
+
+                row.appendChild(name);
+                row.appendChild(wait);
+                section.appendChild(row);
+            });
+
+        } catch {
+            section.innerHTML += `<div class="crowd">Failed to load data</div>`;
         }
     }
 
     document.getElementById("updated").textContent =
-        "Updated " + new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit"
-        });
+        "Updated " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    setTimeout(() => window.scrollTo(0, scrollY), 50);
 }
+
+document.getElementById("closedToggle").onclick = () => {
+    hideClosed = !hideClosed;
+    localStorage.setItem("hideClosed", hideClosed);
+    document.getElementById("closedToggle").textContent =
+        hideClosed ? "Show closed rides" : "Hide closed rides";
+    loadParks();
+};
+
+document.getElementById("closedToggle").textContent =
+    hideClosed ? "Show closed rides" : "Hide closed rides";
+
+window.addEventListener("scroll", () => {
+    localStorage.setItem("scrollY", window.scrollY);
+});
 
 loadParks();
 setInterval(loadParks, 5 * 60 * 1000);
